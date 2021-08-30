@@ -1,0 +1,4 @@
+[all]
+{{ range .Inventory -}} 
+{{ .IP }} {{ .Tags }} datacenter={{ .Datacenter }} hostname={{ .HostName }} image={{ .Image }} package={{ .Package }} uuid={{ .UUID }} state={{ .State }} brand={{ .Brand }}
+{{ end }}    
