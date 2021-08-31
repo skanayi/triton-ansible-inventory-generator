@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
-
 	"text/template"
 
 	triton "github.com/joyent/triton-go"
@@ -45,31 +44,27 @@ type SDCOnfigs struct {
 func main() {
 
 	ctx := context.Background()
-
 	inventoryDcs := strings.Split(strings.ToLower(os.Getenv("TRITON_INVENTORY_DCS")), ",")
 	for _, dcs := range inventoryDcs {
-
 		cs, err := NewTritonClient(dcs)
 		if err != nil {
 			logger.Debug().Msg("error occured")
 
 		}
-		generate(cs, dcs, ctx)
+		createInventory(cs, dcs, ctx)
 
 	}
 
 	var sdConfigs SDCOnfigs
 	sdConfigs.Inventory = InventoryHosts
-
 	templateFile := "ansible.tmpl"
 	targetFilePath := "ansible.inventory"
 	baseFileName := "ansible.tmpl"
-	GenerateConfigFileFromTemplate(templateFile, targetFilePath, baseFileName, sdConfigs)
+	GenerateInventoryFileFromTemplate(templateFile, targetFilePath, baseFileName, sdConfigs)
 
 }
 
-func generate(c *compute.ComputeClient, dc string, ctx context.Context) {
-
+func createInventory(c *compute.ComputeClient, dc string, ctx context.Context) {
 	mapTags := make(map[string]interface{})
 	if os.Getenv("TRITON_IVENTORY_TAGS") != "" {
 		splitTags := strings.Split(os.Getenv("TRITON_IVENTORY_TAGS"), "=")
@@ -87,10 +82,10 @@ func generate(c *compute.ComputeClient, dc string, ctx context.Context) {
 
 	for _, instance := range instances {
 
-		var i InventoryHost
-		i.HostName = instance.Name
-		i.IP = instance.PrimaryIP
-		i.Datacenter = dc
+		var iHost InventoryHost
+		iHost.HostName = instance.Name
+		iHost.IP = instance.PrimaryIP
+		iHost.Datacenter = dc
 		var tagString string
 		for key, value := range instance.Tags {
 			strKey := fmt.Sprintf("%v", key)
@@ -98,15 +93,13 @@ func generate(c *compute.ComputeClient, dc string, ctx context.Context) {
 			tagString = tagString + strKey + "=" + strValue + " "
 
 		}
-		i.Tags = tagString
-		i.UUID = instance.ID
-
-		i.Package = instance.Package
-		i.State = instance.State
-		i.Brand = instance.Brand
-		i.Image = instance.Image
-
-		InventoryHosts = append(InventoryHosts, i)
+		iHost.Tags = tagString
+		iHost.UUID = instance.ID
+		iHost.Package = instance.Package
+		iHost.State = instance.State
+		iHost.Brand = instance.Brand
+		iHost.Image = instance.Image
+		InventoryHosts = append(InventoryHosts, iHost)
 	}
 }
 
@@ -168,13 +161,10 @@ func NewTritonClient(SDC_URL string) (*compute.ComputeClient, error) {
 	return c, err
 }
 
-func GenerateConfigFileFromTemplate(templateFile string, targetFilePath string, baseFileName string, sdConfigs interface{}) error {
-
+func GenerateInventoryFileFromTemplate(templateFile string, targetFilePath string, baseFileName string, sdConfigs interface{}) error {
 	t := template.Must(template.New(baseFileName).ParseFiles(templateFile))
 	f, ferr := os.Create(targetFilePath)
-
 	if ferr != nil {
-
 		logger.Info().Err(ferr).Msgf("failed creating  target file")
 		return ferr
 
@@ -186,9 +176,7 @@ func GenerateConfigFileFromTemplate(templateFile string, targetFilePath string, 
 		logger.Info().Err(err).Msgf("failed apply template: ontinuing with out copying")
 		return err
 	}
-
 	logger.Info().Msgf("completed generation of  config file for file")
-	//locker.Unlock()
 	return nil
 
 }
