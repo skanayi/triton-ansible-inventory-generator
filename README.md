@@ -1,6 +1,6 @@
 # triton-ansible-inventory-generator
 A simple tool to generate ansible inventory files from triton cloud api.All the tags will be considered as ansible host variables
-Usage
+# Usage
 - clone repo
 - go build (tested with go1.16.4 )
 - Make sure ansible.tmpl file is already available in the same directory
